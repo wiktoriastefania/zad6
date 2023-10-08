@@ -1,0 +1,89 @@
+import os
+import shutil
+
+def normalize(filename):
+    filename = filename.lower()
+    filename = ''.join(char if char.isalnum() or char == '.' or char == '_' else '_' for char in filename)
+    return filename
+
+def sort_files(folder_path):
+    images = []
+    videos = []
+    documents = []
+    music = []
+    archives = []
+    unknown = []
+
+    for root, dirs, files in os.walk(folder_path):
+        for file in files:
+            filename, file_extension = os.path.splitext(file)
+            file_extension = file_extension.upper()[1:] 
+            normalized_filename = normalize(filename)
+            
+            if file_extension in ['JPEG', 'PNG', 'JPG', 'SVG']:
+                images.append(file)
+            elif file_extension in ['AVI', 'MP4', 'MOV', 'MKV']:
+                videos.append(file)
+            elif file_extension in ['DOC', 'DOCX', 'TXT', 'PDF', 'XLSX', 'PPTX']:
+                documents.append(file)
+            elif file_extension in ['MP3', 'OGG', 'WAV', 'AMR']:
+                music.append(file)
+            elif file_extension in ['ZIP', 'GZ', 'TAR']:
+                archives.append(file)
+            else:
+                unknown.append(file)
+    
+    def move_files(files_list, dest_folder):
+        dest_path = os.path.join(folder_path, dest_folder)
+        os.makedirs(dest_path, exist_ok=True)
+        
+        for file in files_list:
+            source_path = os.path.join(folder_path, file)
+            shutil.move(source_path, os.path.join(dest_path, file))
+    
+    move_files(images, 'images')
+    move_files(videos, 'videos')
+    move_files(documents, 'documents')
+    move_files(music, 'music')
+    
+
+        archive_name = os.path.splitext(archive)[0]
+        archive_extension = os.path.splitext(archive)[1].upper()[1:]
+        archive_folder = normalize(archive_name)
+        
+        archive_path = os.path.join(folder_path, archive)
+        archive_dest_folder = os.path.join(folder_path, 'archives', archive_folder)
+        os.makedirs(archive_dest_folder, exist_ok=True)
+
+        try:
+            shutil.unpack_archive(archive_path, archive_dest_folder)
+        except Exception as e:
+            print(f"Błąd podczas rozpakowywania archiwum {archive}: {e}")
+        
+
+        os.remove(archive_path)
+
+    for root, dirs, files in os.walk(folder_path, topdown=False):
+        for dir in dirs:
+            dir_path = os.path.join(root, dir)
+            if not os.listdir(dir_path):
+                os.rmdir(dir_path)
+    
+    return images, videos, documents, music, archives, unknown
+
+if __name__ == '__main__':
+    import sys
+    if len(sys.argv) != 2:
+        print("Użycie: python sort.py [folder_path]")
+        sys.exit(1)
+    
+    folder_path = sys.argv[1]
+    
+    images, videos, documents, music, archives, unknown = sort_files(folder_path)
+    
+    print("Znalezione obrazy:", images)
+    print("Znalezione wideo:", videos)
+    print("Znalezione dokumenty:", documents)
+    print("Znalezione pliki audio:", music)
+    print("Znalezione archiwa:", archives)
+    print("Nieznane rozszerzenia:", unknown)
